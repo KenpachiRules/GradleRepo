@@ -1,0 +1,35 @@
+// building kafka client.
+apply plugin: 'java'
+
+repositories {
+  mavenCentral()
+}
+
+dependencies {
+  compile 'org.apache.kafka:kafka-clients:1.1.0'
+  runtime 'org.apache.kafka:kafka-clients:1.1.0'
+  testCompile 'org.testng:testng:6.10'
+}
+
+task copyDeps(type: Copy) {
+ from configurations.compile
+ into 'build/lib'
+}
+
+task copyTestDeps(type: Copy) {
+ from configurations.testCompile
+ into 'build/lib'
+}
+
+task runKafka(type:JavaExec, dependsOn:classes) {
+  main = 'com.hari.learning.kafka.MyKafkaUtils'
+  classpath 'bin/main'
+  classpath configurations.runtime
+}
+
+task runKafkaTests(type: Test,dependsOn:copyTestDeps) {
+  useTestNG() {
+       useDefaultListeners = true
+       suites 'src/test/resources/kafka_prod_test_suite.xml'
+  }
+}

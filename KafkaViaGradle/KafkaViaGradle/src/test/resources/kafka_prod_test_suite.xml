@@ -1,0 +1,8 @@
+<!DOCTYPE suite SYSTEM "http://testng.org/testng-1.0.dtd" >
+<suite name="MyKafkaProdSuite" verbose="1">
+	<test name="KafkaProdSendHelloWorld">
+		<classes>
+			<class name="com.hari.learning.kafka.tests.KafkaProdTests" />
+		</classes>
+	</test>
+</suite>
