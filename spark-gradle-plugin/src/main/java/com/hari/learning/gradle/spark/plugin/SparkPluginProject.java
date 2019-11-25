@@ -1,5 +1,7 @@
 package com.hari.learning.gradle.spark.plugin;
 
+import static com.hari.learning.gradle.spark.plugin.Settings.SETTINGS_EXTN;
+
 import java.net.URI;
 import java.net.URISyntaxException;
 
@@ -11,6 +13,7 @@ import org.gradle.api.artifacts.repositories.MavenArtifactRepository;
 
 import com.hari.learning.gradle.spark.plugin.tasks.CopyDepsTask;
 import com.hari.learning.gradle.spark.plugin.tasks.LaunchSparkTask;
+import com.hari.learning.gradle.spark.plugin.tasks.PrepareForClusterSubmit;
 
 /**
  * Gradle plugin to build and launch a spark application , this was created out
@@ -46,15 +49,20 @@ public class SparkPluginProject implements Plugin<Project> {
 			}
 
 		}));
-		p.getExtensions().create("settings", Settings.class);
+		p.getExtensions().create(SETTINGS_EXTN, Settings.class);
 		Task copyDeps = p.getTasks().create("copyDeps", CopyDepsTask.class);
 		copyDeps.setDescription("Copies all dependencies required to run spark job");
 		copyDeps.setGroup(GROUP);
 		copyDeps.dependsOn("build");
+		Task prepClusterSubmit = p.getTasks().create("prepForClusterSubmite", PrepareForClusterSubmit.class);
+		prepClusterSubmit
+				.setDescription(" Copies all spark deps into the cluster to create a distributed cache in Yarn");
+		prepClusterSubmit.dependsOn(copyDeps);
+		prepClusterSubmit.setGroup(GROUP);
 		Task launch = p.getTasks().create("launch", LaunchSparkTask.class);
 		launch.setDescription("Launch a spark-job with overrided settings");
 		launch.setGroup(GROUP);
-		launch.dependsOn(copyDeps);
+		launch.dependsOn(prepClusterSubmit);
 	}
 
 }

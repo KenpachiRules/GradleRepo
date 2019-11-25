@@ -19,6 +19,8 @@ import org.gradle.api.tasks.TaskAction;
 
 public class CopyDepsTask extends DefaultTask {
 
+	public static final String JOB_DEPS_FILE_SUFFIX = "jobDeps";
+
 	@TaskAction
 	public void copyDep() {
 		Project p = getProject();
@@ -27,7 +29,7 @@ public class CopyDepsTask extends DefaultTask {
 		p.copy(new Action<CopySpec>() {
 			@Override
 			public void execute(CopySpec copySpec) {
-				copySpec.into(p.getBuildDir().toPath().toString() + File.separator + "jobDeps");
+				copySpec.into(p.getBuildDir().toPath().toString() + File.separator + JOB_DEPS_FILE_SUFFIX);
 				copySpec.from(deps);
 			}
 		});

@@ -49,10 +49,8 @@ public class LaunchMainSpark {
 				System.out.println("Spark job completed successfully ");
 			else if (exit == 1)
 				System.out.println("Spark job terminated with errors , please check stdErr.txt and stdOut.txt ");
-		} catch (IOException io) {
-			System.out.println("LaunchMainSpark exited with an error " + io.getLocalizedMessage());
-		} catch (InterruptedException e) {
-			e.printStackTrace();
+		} catch (IOException | InterruptedException e) {
+			System.out.println("LaunchMainSpark exited with an error " + e.getLocalizedMessage());
 		}
 	}
 
