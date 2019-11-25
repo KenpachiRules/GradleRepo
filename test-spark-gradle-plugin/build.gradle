@@ -1,0 +1,28 @@
+buildscript {
+repositories {
+ mavenLocal()
+ maven {
+  	url "http://repo.gradle.org/gradle/libs-releases-local"
+  }
+ mavenCentral()
+}
+dependencies {
+	classpath 'com.hari.learning:spark-gradle-plugin:1.0'
+  }
+}
+
+apply plugin : 'scala'
+apply plugin : 'spark-gradle-plugin'
+apply plugin : 'eclipse'
+
+dependencies {
+  compile 'org.apache.spark:spark-sql_2.11:2.4.0' , 'com.hari.learning:spark-gradle-plugin:1.0'
+  implementation 'org.scala-lang:scala-library:2.11.8'
+  runtime 'org.apache.spark:spark-launcher_2.11:2.4.0'
+}
+
+settings {
+  mainClass 'com.hari.learning.spark.test.gradle.plugin.ReadWriteFF'
+  sparkHome 'C:\\Softwares\\Spark2.4.0'
+  scalaVersion '2.11'
+}
