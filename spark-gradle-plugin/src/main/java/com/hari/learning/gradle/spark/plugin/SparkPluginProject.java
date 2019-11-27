@@ -54,7 +54,7 @@ public class SparkPluginProject implements Plugin<Project> {
 		copyDeps.setDescription("Copies all dependencies required to run spark job");
 		copyDeps.setGroup(GROUP);
 		copyDeps.dependsOn("build");
-		Task prepClusterSubmit = p.getTasks().create("prepForClusterSubmite", PrepareForClusterSubmit.class);
+		Task prepClusterSubmit = p.getTasks().create("prepareClusterSubmit", PrepareForClusterSubmit.class);
 		prepClusterSubmit
 				.setDescription(" Copies all spark deps into the cluster to create a distributed cache in Yarn");
 		prepClusterSubmit.dependsOn(copyDeps);

@@ -2,10 +2,12 @@ package com.hari.learning.gradle.spark.plugin.tasks;
 
 import static com.hari.learning.gradle.spark.plugin.Settings.SETTINGS_EXTN;
 import static com.hari.learning.gradle.spark.plugin.tasks.CopyDepsTask.JOB_DEPS_FILE_SUFFIX;
+import static java.util.Arrays.asList;
 
 import java.io.File;
 import java.io.FilenameFilter;
 import java.io.IOException;
+import java.util.List;
 
 import org.gradle.api.Action;
 import org.gradle.api.DefaultTask;
@@ -40,6 +42,9 @@ public class LaunchSparkTask extends DefaultTask {
 	private static final String STD_ERR = "stdErr.txt";
 	private static final String STD_OUT = "stdOut.txt";
 	private static final String SPARK_SCALA_VERSION = "SPARK_SCALA_VERSION";
+	static final String YARN_CONF_DIR = "YARN_CONF_DIR";
+	static final String HADOOP_HOME = "HADOOP_HOME";
+	static final String HADOOP_USER_NAME = "HADOOP_USER_NAME";
 
 	@TaskAction
 	public void launch() throws IOException {
@@ -58,7 +63,6 @@ public class LaunchSparkTask extends DefaultTask {
 		String sparkHome = settings.getSparkHome();
 		if (sparkHome == null || sparkHome.isEmpty())
 			throw new IllegalArgumentException("Spark home cannot be empty ");
-
 		final String classPath = p.getBuildDir().toPath() + File.separator + JOB_DEPS_FILE_SUFFIX + File.separator
 				+ "*";
 		// determine the master type and the mode type.
@@ -68,12 +72,13 @@ public class LaunchSparkTask extends DefaultTask {
 		File outFile = (settings.getErrRedirect() != null && !settings.getErrRedirect().isEmpty())
 				? new File(settings.getErrRedirect())
 				: new File(p.getBuildDir().toPath() + File.separator + STD_OUT);
+		List<Object> prgArgs = asList(new Object[] { settings.getAppName(), settings.getMaster(),
+				files[0].toPath().toString(), mainClass, classPath, errFile, outFile, sparkHome });
 		p.javaexec(new Action<JavaExecSpec>() {
 			@Override
 			public void execute(JavaExecSpec spec) {
 				spec.setClasspath(p.files(p.getLayout().getProjectDirectory().dir(classPath)));
-				spec.args(settings.getAppName(), settings.getMaster(), files[0].toPath().toString(), mainClass,
-						classPath, errFile, outFile, sparkHome);
+				spec.args(prgArgs);
 				spec.getEnvironment().put(SPARK_SCALA_VERSION, settings.getScalaVersion());
 				spec.setMain(LaunchMainSpark.class.getCanonicalName());
 			}
