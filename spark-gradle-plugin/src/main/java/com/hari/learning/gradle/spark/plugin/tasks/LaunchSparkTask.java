@@ -86,7 +86,6 @@ public class LaunchSparkTask extends DefaultTask {
 		List<Object> prgArgs = asList(new Object[] { settings.getAppName(), settings.getMaster(),
 				files[0].toPath().toString(), mainClass, classPath, errFile, outFile, sparkHome });
 		SPGLogger.logFine.accept("Printing input args to LaunchMainSpark main method");
-		prgArgs.forEach(System.out::println);
 		p.javaexec(new Action<JavaExecSpec>() {
 			@Override
 			public void execute(JavaExecSpec spec) {
