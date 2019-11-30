@@ -16,7 +16,7 @@ apply plugin : 'spark-gradle-plugin'
 apply plugin : 'eclipse'
 
 dependencies {
-  compile 'org.apache.spark:spark-sql_2.11:2.4.0','com.sun.jersey:jersey-client:1.9','org.apache.spark:spark-yarn_2.11:2.4.0', 'com.hari.learning:spark-gradle-plugin:1.0'
+  compile 'org.apache.spark:spark-sql_2.11:2.4.0' , 'com.hari.learning:spark-gradle-plugin:1.0'
   implementation 'org.scala-lang:scala-library:2.11.8'
   runtime 'org.apache.spark:spark-launcher_2.11:2.4.0'
 }
@@ -24,10 +24,6 @@ dependencies {
 settings {
   mainClass 'com.hari.learning.spark.test.gradle.plugin.ReadWriteFF'
   sparkHome 'C:\\Softwares\\Spark2.4.0'
-  hadoopHome 'C:\\Softwares\\Hadoop_Home'
   scalaVersion '2.11'
-  hadoopConf 'C:\\Users\\harim\\Documents\\ClusterClientConfigs\\TestHadoopHome'
-  master 'yarn'
-  mode 'cluster'
-  jarZipDestPath '/tmp/spark_gradle_plugin/jars.zip'
+  hadoopHome 'C:\\Softwares\\Hadoop_Home'
 }
