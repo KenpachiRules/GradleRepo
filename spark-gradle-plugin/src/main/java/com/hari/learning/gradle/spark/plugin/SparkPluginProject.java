@@ -44,7 +44,7 @@ public class SparkPluginProject implements Plugin<Project> {
 				try {
 					customRepo.setUrl(new URI("http://repo.gradle.org/gradle/libs-releases-local"));
 				} catch (URISyntaxException urise) {
-					System.out.println("Incorrect URL provided ");
+					SPGLogger.logError.accept("Incorrect URL provided");
 				}
 			}
 

@@ -1,7 +1,19 @@
 package com.hari.learning.gradle.spark.plugin.tasks;
 
+import static com.hari.learning.gradle.spark.plugin.Constants.DISTRIBUTED_YARN_CACHE_PATH;
+import static com.hari.learning.gradle.spark.plugin.Constants.HADOOP_FS;
+import static com.hari.learning.gradle.spark.plugin.Constants.HADOOP_HOME;
+import static com.hari.learning.gradle.spark.plugin.Constants.HADOOP_USER_NAME;
+import static com.hari.learning.gradle.spark.plugin.Constants.JOB_DEPS_FILE_SUFFIX;
+import static com.hari.learning.gradle.spark.plugin.Constants.SPARK_CONF_DEPLOY_MODE;
+import static com.hari.learning.gradle.spark.plugin.Constants.SPARK_SCALA_VERSION;
+import static com.hari.learning.gradle.spark.plugin.Constants.STD_ERR;
+import static com.hari.learning.gradle.spark.plugin.Constants.STD_OUT;
+import static com.hari.learning.gradle.spark.plugin.Constants.YARN_CONF_DIR;
+import static com.hari.learning.gradle.spark.plugin.SPGLogger.PROPERTY_SET_VALUE;
 import static com.hari.learning.gradle.spark.plugin.Settings.SETTINGS_EXTN;
-import static com.hari.learning.gradle.spark.plugin.tasks.CopyDepsTask.JOB_DEPS_FILE_SUFFIX;
+import static com.hari.learning.gradle.spark.plugin.SparkRunMode.getRunMode;
+import static com.hari.learning.gradle.spark.plugin.Utils.getFileSystem;
 import static java.util.Arrays.asList;
 
 import java.io.File;
@@ -15,7 +27,9 @@ import org.gradle.api.Project;
 import org.gradle.api.tasks.TaskAction;
 import org.gradle.process.JavaExecSpec;
 
+import com.hari.learning.gradle.spark.plugin.SPGLogger;
 import com.hari.learning.gradle.spark.plugin.Settings;
+import com.hari.learning.gradle.spark.plugin.SparkRunMode;
 
 /**
  * Task to launch spark application via SparkLauncher. Depends on the
@@ -39,13 +53,6 @@ public class LaunchSparkTask extends DefaultTask {
 		}
 	};
 
-	private static final String STD_ERR = "stdErr.txt";
-	private static final String STD_OUT = "stdOut.txt";
-	private static final String SPARK_SCALA_VERSION = "SPARK_SCALA_VERSION";
-	static final String YARN_CONF_DIR = "YARN_CONF_DIR";
-	static final String HADOOP_HOME = "HADOOP_HOME";
-	static final String HADOOP_USER_NAME = "HADOOP_USER_NAME";
-
 	@TaskAction
 	public void launch() throws IOException {
 		final Project p = getProject();
@@ -65,21 +72,46 @@ public class LaunchSparkTask extends DefaultTask {
 			throw new IllegalArgumentException("Spark home cannot be empty ");
 		final String classPath = p.getBuildDir().toPath() + File.separator + JOB_DEPS_FILE_SUFFIX + File.separator
 				+ "*";
-		// determine the master type and the mode type.
+		SPGLogger.logFine.accept(String.format("Classpath required for invoking SparkLauncher %s ", classPath));
+		// determine the job needs to run in cluster or local machine.
+		final SparkRunMode runMode = getRunMode.apply(settings.getMaster()).apply(settings.getMode());
 		File errFile = (settings.getErrRedirect() != null && !settings.getErrRedirect().isEmpty())
 				? new File(settings.getErrRedirect())
 				: new File(p.getBuildDir().toPath() + File.separator + STD_ERR);
+		SPGLogger.logInfo.accept(String.format("Error redirected to log file %s", errFile.toPath().toString()));
 		File outFile = (settings.getErrRedirect() != null && !settings.getErrRedirect().isEmpty())
 				? new File(settings.getErrRedirect())
 				: new File(p.getBuildDir().toPath() + File.separator + STD_OUT);
+		SPGLogger.logInfo.accept(String.format("Output redirected to log file %s", outFile.toPath().toString()));
 		List<Object> prgArgs = asList(new Object[] { settings.getAppName(), settings.getMaster(),
 				files[0].toPath().toString(), mainClass, classPath, errFile, outFile, sparkHome });
+		SPGLogger.logFine.accept("Printing input args to LaunchMainSpark main method");
+		prgArgs.forEach(System.out::println);
 		p.javaexec(new Action<JavaExecSpec>() {
 			@Override
 			public void execute(JavaExecSpec spec) {
 				spec.setClasspath(p.files(p.getLayout().getProjectDirectory().dir(classPath)));
 				spec.args(prgArgs);
+				SPGLogger.logFine.accept(PROPERTY_SET_VALUE.apply("SPARK_SCALA", settings.getScalaVersion()));
 				spec.getEnvironment().put(SPARK_SCALA_VERSION, settings.getScalaVersion());
+				SPGLogger.logFine.accept(PROPERTY_SET_VALUE.apply(HADOOP_HOME, settings.getHadoopHome()));
+				spec.getEnvironment().put(HADOOP_HOME, settings.getHadoopHome());
+				if (runMode == SparkRunMode.YARN_CLIENT || runMode == SparkRunMode.YARN_CLUSTER) {
+					SPGLogger.logFine.accept(
+							String.format("The spark job is to be submitted in yarn cluster and the deployMode is %s",
+									settings.getMode()));
+					spec.getEnvironment().put(HADOOP_USER_NAME, settings.getHadoopUserName());
+					SPGLogger.logFine.accept(PROPERTY_SET_VALUE.apply(HADOOP_USER_NAME, settings.getHadoopUserName()));
+					spec.getEnvironment().put(YARN_CONF_DIR, settings.getHadoopConf());
+					SPGLogger.logFine.accept(PROPERTY_SET_VALUE.apply(YARN_CONF_DIR, settings.getHadoopConf()));
+					String distYarnCachePath = new StringBuilder(
+							getFileSystem(settings.getHadoopHome()).getConf().get(HADOOP_FS))
+									.append(settings.getJarZipDestPath()).toString();
+					spec.getEnvironment().put(DISTRIBUTED_YARN_CACHE_PATH, distYarnCachePath);
+					SPGLogger.logFine.accept(PROPERTY_SET_VALUE.apply(DISTRIBUTED_YARN_CACHE_PATH, distYarnCachePath));
+					spec.getEnvironment().put(SPARK_CONF_DEPLOY_MODE, settings.getMode());
+					SPGLogger.logFine.accept(PROPERTY_SET_VALUE.apply(SPARK_CONF_DEPLOY_MODE, settings.getMode()));
+				}
 				spec.setMain(LaunchMainSpark.class.getCanonicalName());
 			}
 		});

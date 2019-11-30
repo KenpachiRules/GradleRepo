@@ -17,7 +17,7 @@ import java.util.function.Function;
 
 public enum SparkRunMode {
 
-	LOCAL("local[*]", null), YARN_CLUSTER("yarn", "cluster"), YARN_CLIENT("yarn", "client");
+	LOCAL("local[*]", ""), YARN_CLUSTER("yarn", "cluster"), YARN_CLIENT("yarn", "client");
 
 	private final String master;
 	private final String deployMode;
@@ -44,8 +44,9 @@ public enum SparkRunMode {
 	public static Function<String, Function<String, SparkRunMode>> getRunMode = master -> deployMode -> {
 		List<SparkRunMode> runModes = asList(values()).stream()
 				.filter(srm -> srm.master.equals(master) && srm.deployMode.equals(deployMode)).collect(toList());
-		if (runModes.size() != 1)
+		if (runModes.size() != 1) {
 			throw new IllegalStateException("More than one spark mode found for given inputs");
+		}
 		return runModes.get(0);
 	};
 }

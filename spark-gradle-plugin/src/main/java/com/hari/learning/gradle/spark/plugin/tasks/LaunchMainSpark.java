@@ -1,17 +1,23 @@
 package com.hari.learning.gradle.spark.plugin.tasks;
 
-import static com.hari.learning.gradle.spark.plugin.tasks.LaunchSparkTask.HADOOP_HOME;
-import static com.hari.learning.gradle.spark.plugin.tasks.LaunchSparkTask.HADOOP_USER_NAME;
-import static com.hari.learning.gradle.spark.plugin.tasks.LaunchSparkTask.YARN_CONF_DIR;
+import static com.hari.learning.gradle.spark.plugin.Constants.DISTRIBUTED_YARN_CACHE_PATH;
+import static com.hari.learning.gradle.spark.plugin.Constants.HADOOP_HOME;
+import static com.hari.learning.gradle.spark.plugin.Constants.HADOOP_USER_NAME;
+import static com.hari.learning.gradle.spark.plugin.Constants.SPARK_CONF_DEPLOY_MODE;
+import static com.hari.learning.gradle.spark.plugin.Constants.SPARK_CONF_YARN_ZIP;
+import static com.hari.learning.gradle.spark.plugin.Constants.YARN_CONF_DIR;
+import static com.hari.learning.gradle.spark.plugin.SPGLogger.PROPERTY_SET_VALUE;
 import static java.util.Arrays.asList;
-import static java.util.stream.Collectors.toMap;
 
 import java.io.File;
 import java.io.IOException;
 import java.util.Map;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 import org.apache.spark.launcher.SparkLauncher;
+
+import com.hari.learning.gradle.spark.plugin.SPGLogger;
 
 /**
  * The main class which would execute the SparkJob via SparkLauncher.
@@ -42,6 +48,7 @@ public class LaunchMainSpark {
 	 * @param args[7]
 	 *            - Spark Home location.
 	 */
+
 	public static void main(String args[]) {
 		if (args == null || args.length != 8)
 			throw new IllegalArgumentException(" Not enough arguments to launch SparkLauncher ");
@@ -49,7 +56,6 @@ public class LaunchMainSpark {
 		String master = args[1];
 		String jarPath = args[2];
 		String mainClass = args[3];
-		String classPath = args[4];
 		String errFile = args[5];
 		String outFile = args[6];
 		String sparkHome = args[7];
@@ -59,20 +65,33 @@ public class LaunchMainSpark {
 				Environment.newInstance(YARN_CONF_DIR, System.getenv(YARN_CONF_DIR)),
 				Environment.newInstance(HADOOP_HOME, System.getenv(HADOOP_HOME)),
 				Environment.newInstance(HADOOP_USER_NAME, System.getenv(HADOOP_USER_NAME)));
-		SparkLauncher launcher = new SparkLauncher(envs);
+		String yarnDistributedClassPath = System.getenv(DISTRIBUTED_YARN_CACHE_PATH);
+		String yarnClusterMode = System.getenv(SPARK_CONF_DEPLOY_MODE);
+		Optional<SparkLauncher> launcher = Optional
+				.ofNullable(!envs.isEmpty() && envs.size() == 3 ? new SparkLauncher(envs) : new SparkLauncher());
 		try {
-			Process launch = launcher.setAppName(appName).setMaster(master).setMainClass(mainClass)
-					.setConf(SparkLauncher.DRIVER_EXTRA_CLASSPATH, classPath).setSparkHome(sparkHome)
-					.setConf(SparkLauncher.EXECUTOR_EXTRA_CLASSPATH, classPath).setAppResource(jarPath)
-					.redirectError(new File(errFile)).redirectOutput(new File(outFile)).setVerbose(true).launch();
+			Process launch = launcher.map(launch1 -> launch1.setAppName(appName).setMaster(master)
+					.setMainClass(mainClass).setSparkHome(sparkHome).setAppResource(jarPath)
+					.redirectError(new File(errFile)).redirectOutput(new File(outFile)).setVerbose(true))
+					.map(launch2 -> {
+						if (yarnDistributedClassPath != null && !yarnDistributedClassPath.isEmpty()) {
+							SPGLogger.logFine.accept(
+									"Launching the application in yarn mode and that requires uploading the deps to distributed yarn cache");
+							SPGLogger.logFine
+									.accept(PROPERTY_SET_VALUE.apply(SPARK_CONF_YARN_ZIP, yarnDistributedClassPath));
+							return launch2.setConf(SPARK_CONF_YARN_ZIP, yarnDistributedClassPath)
+									.setDeployMode(yarnClusterMode);
+						} else
+							return launch2;
+					}).get().launch();
 			launch.waitFor();
 			int exit = launch.exitValue();
 			if (exit == 0)
-				System.out.println("Spark job completed successfully ");
+				SPGLogger.logInfo.accept("Spark job completed successfully ");
 			else if (exit == 1)
-				System.out.println("Spark job terminated with errors , please check stdErr.txt and stdOut.txt ");
+				SPGLogger.logInfo.accept("Spark job terminated with errors , please check stdErr.txt and stdOut.txt ");
 		} catch (IOException | InterruptedException e) {
-			System.out.println("LaunchMainSpark exited with an error " + e.getLocalizedMessage());
+			SPGLogger.logError.accept("LaunchMainSpark exited with an error " + e.getLocalizedMessage());
 		}
 	}
 
