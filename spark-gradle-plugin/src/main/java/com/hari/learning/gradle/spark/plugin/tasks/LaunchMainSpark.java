@@ -8,9 +8,11 @@ import static com.hari.learning.gradle.spark.plugin.Constants.SPARK_CONF_YARN_ZI
 import static com.hari.learning.gradle.spark.plugin.Constants.YARN_CONF_DIR;
 import static com.hari.learning.gradle.spark.plugin.SPGLogger.PROPERTY_SET_VALUE;
 import static java.util.Arrays.asList;
+import static java.util.stream.Collectors.toList;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Collectors;
@@ -47,10 +49,12 @@ public class LaunchMainSpark {
 	 *            - File to which standard out will be re-directed to.
 	 * @param args[7]
 	 *            - Spark Home location.
+	 * @param args[8]
+	 *            - Spark user overridden configs.
 	 */
 
 	public static void main(String args[]) {
-		if (args == null || args.length != 8)
+		if (args == null || args.length != 9)
 			throw new IllegalArgumentException(" Not enough arguments to launch SparkLauncher ");
 		String appName = args[0];
 		String master = args[1];
@@ -59,6 +63,7 @@ public class LaunchMainSpark {
 		String errFile = args[5];
 		String outFile = args[6];
 		String sparkHome = args[7];
+		String sparkConfig = args[8];
 		// look for if env vars YARN_CONF_DIR and HADOOP_HOME have been set
 		// if so it would be needed to submit application to yarn.
 		Map<String, String> envs = Environment.toMap(
@@ -81,8 +86,29 @@ public class LaunchMainSpark {
 									.accept(PROPERTY_SET_VALUE.apply(SPARK_CONF_YARN_ZIP, yarnDistributedClassPath));
 							return launch2.setConf(SPARK_CONF_YARN_ZIP, yarnDistributedClassPath)
 									.setDeployMode(yarnClusterMode);
-						} else
-							return launch2;
+						} else {
+							// In stand-alone mode be sure to set the Driver and Executor classPath.
+							return launch2.setConf(SparkLauncher.DRIVER_EXTRA_CLASSPATH, args[4])
+									.setConf(SparkLauncher.EXECUTOR_EXTRA_CLASSPATH, args[4]);
+						}
+					}).map(launch3 -> {
+						// parse out the comma separated spark configs
+						// each parsed record contains key separated by "=" followed by its value.
+						if (sparkConfig == null || sparkConfig.isEmpty() || sparkConfig.equals("EMPTY"))
+							return launch3;
+						Map<String, String> sparkConfVars = Environment
+								.toMap(asList(sparkConfig.split(",")).stream().map(conf -> conf.trim()).map(conf -> {
+									String[] keyValue = conf.split("=");
+									if (keyValue == null || keyValue.length != 2) {
+										SPGLogger.logError.accept(String.format(" Incorrect key value property %s ",
+												keyValue.toString()));
+										throw new IllegalArgumentException(
+												"Incorrect spark config values, check the log for more details.");
+									}
+									return Environment.newInstance(keyValue[0], keyValue[1]);
+								}).collect(toList()));
+						sparkConfVars.forEach((key, value) -> launch3.setConf(key, value));
+						return launch3;
 					}).get().launch();
 			launch.waitFor();
 			int exit = launch.exitValue();
@@ -109,7 +135,11 @@ public class LaunchMainSpark {
 		}
 
 		public static Map<String, String> toMap(Environment... env) {
-			return asList(env).stream().filter(en -> en.name != null && en.value != null)
+			return toMap(asList(env));
+		}
+
+		public static Map<String, String> toMap(List<Environment> env) {
+			return env.stream().filter(en -> en.name != null && en.value != null)
 					.collect(Collectors.toMap(e -> e.name, e -> e.value));
 		}
 

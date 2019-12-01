@@ -83,8 +83,9 @@ public class LaunchSparkTask extends DefaultTask {
 				? new File(settings.getErrRedirect())
 				: new File(p.getBuildDir().toPath() + File.separator + STD_OUT);
 		SPGLogger.logInfo.accept(String.format("Output redirected to log file %s", outFile.toPath().toString()));
-		List<Object> prgArgs = asList(new Object[] { settings.getAppName(), settings.getMaster(),
-				files[0].toPath().toString(), mainClass, classPath, errFile, outFile, sparkHome });
+		List<Object> prgArgs = asList(
+				new Object[] { settings.getAppName(), settings.getMaster(), files[0].toPath().toString(), mainClass,
+						classPath, errFile, outFile, sparkHome, settings.getSparkConfig() });
 		SPGLogger.logFine.accept("Printing input args to LaunchMainSpark main method");
 		p.javaexec(new Action<JavaExecSpec>() {
 			@Override

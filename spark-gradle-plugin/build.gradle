@@ -15,6 +15,11 @@ dependencies {
   compile "org.gradle:gradle-core:5.6.2","org.apache.spark:spark-launcher_2.11:2.4.0","org.apache.hadoop:hadoop-common:2.7.3","org.apache.hadoop:hadoop-hdfs:2.7.3"
 }
 
+task copyDeps(type:Copy) {
+  from configurations.compile
+  into 'build/deps'
+}
+
 gradlePlugin {
   plugins {
        testGradlePlugin {
