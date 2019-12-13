@@ -45,7 +45,7 @@ public enum SparkRunMode {
 		List<SparkRunMode> runModes = asList(values()).stream()
 				.filter(srm -> srm.master.equals(master) && srm.deployMode.equals(deployMode)).collect(toList());
 		if (runModes.size() != 1) {
-			throw new IllegalStateException("More than one spark mode found for given inputs");
+			throw new IllegalStateException("Ambigous, should match only one SparkRunMode enum instance");
 		}
 		return runModes.get(0);
 	};
