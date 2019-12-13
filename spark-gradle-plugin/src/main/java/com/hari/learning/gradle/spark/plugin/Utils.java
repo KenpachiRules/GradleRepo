@@ -21,28 +21,31 @@ import org.apache.hadoop.fs.Path;
 public class Utils {
 
 	/**
-	 * Returns a {@link org.apache.hadoop.fs.FileSystem} instance 
-     *
-	 * @param hadoopHome - Path containing necessary *-site.xml files 
-	 * needed to communicate with the cluster.
+	 * Returns a {@link org.apache.hadoop.fs.FileSystem} instance
+	 *
+	 * @param hadoopHome
+	 *            - Path containing necessary *-site.xml files needed to communicate
+	 *            with the cluster.
 	 * @return
 	 */
 	public static FileSystem getFileSystem(String hadoopHome) {
-		Configuration hadoopConf = new Configuration();
+
 		File siteFiles = new File(hadoopHome);
-		asList(siteFiles.listFiles(new FilenameFilter() {
-			@Override
-			public boolean accept(File dir, String file) {
-				return file.endsWith(".xml");
-			}
-		})).stream()
-				.forEach(site -> hadoopConf.addResource(new Path(site.toPath().toAbsolutePath().toString())));
 		try {
-			return FileSystem.get(hadoopConf);
+			return FileSystem.get(asList(siteFiles.listFiles(new FilenameFilter() {
+				@Override
+				public boolean accept(File dir, String file) {
+					return file.endsWith(".xml");
+				}
+			})).stream().map(file -> new Path(file.toPath().toAbsolutePath().toString())).reduce(new Configuration(),
+					(conf, site) -> {
+						conf.addResource(site);
+						return conf;
+					}, (c1, c2) -> c2));
 		} catch (IOException ioe) {
 			SPGLogger.logError.accept("Failed while retrieving Hadoop FileSystem object");
 			throw new RuntimeException(ioe);
 		}
 	}
-	
+
 }

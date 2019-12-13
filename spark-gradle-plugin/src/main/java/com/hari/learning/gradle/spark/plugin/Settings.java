@@ -24,7 +24,7 @@ public class Settings {
 	private String mode = ""; // default values is empty string since in local mode (default mode) it is NA.
 	private String outRedirect;
 	private String errRedirect;
-	private String scalaVersion = "2.11";
+	private String scalaVersion = "2.11"; // Default it to spark-scala 2.11 version.
 	private String sparkConfig = "EMPTY"; // Add or override any spark configuration if required or else we
 	// fall back to defaults.
 	private String jarZipDestPath = "/tmp/spark_gradle_plugin/deps"; // default path where Yarn will
