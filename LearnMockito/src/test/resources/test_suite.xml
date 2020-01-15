@@ -1,0 +1,8 @@
+<!DOCTYPE suite SYSTEM "http://testng.org/testng-1.0.dtd" >
+<suite name="LearnMockitoTestSuite" verbose="1">
+	<test name="MyBankTests">
+		<classes>
+			<class name="com.hari.learning.bank.personal.tests.TestAddressEntity" />
+		</classes>
+	</test>
+</suite>
